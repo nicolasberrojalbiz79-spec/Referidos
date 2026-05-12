@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Trainer Nico · Sistema de Referidos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; background: #08080E; color: #E0E0EE; font-family: 'Segoe UI', 'Helvetica Neue', sans-serif; overflow-x: hidden; }
+  .bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(100,50,255,.16) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 85% 85%, rgba(0,196,140,.09) 0%, transparent 60%); }
+  header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,.06); background: rgba(8,8,20,.85); backdrop-filter: blur(12px); flex-wrap: wrap; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-title { font-size: 17px; font-weight: 900; letter-spacing: 3px; color: #fff; }
+  .logo-sub { font-size: 9px; letter-spacing: 3px; color: #7B6BFF; font-weight: 700; text-transform: uppercase; }
+  nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .nav-btn { padding: 8px 16px; border-radius: 30px; border: 1px solid rgba(255,255,255,.1); background: transparent; color: #999; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; }
+  .nav-btn.active { background: rgba(123,107,255,.22); border-color: #7B6BFF; color: #fff; }
+  main { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 28px 16px 60px; }
+  #toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); padding: 11px 26px; border-radius: 40px; font-weight: 700; font-size: 14px; color: #fff; z-index: 999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,.5); display: none; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 20px 16px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 4px; margin-top: 8px; }
+  .stat-lbl { font-size: 10px; color: #777; letter-spacing: 1px; text-transform: uppercase; }
+  .card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 14px; padding: 20px; margin-bottom: 24px; }
+  .sec-title { font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 16px; }
+  .levels-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .lv-badge { flex: 1 1 90px; border: 1px solid; border-radius: 12px; padding: 14px 8px; text-align: center; background: rgba(255,255,255,.02); }
+  .lv-pct { font-size: 20px; font-weight: 900; }
+  .lv-name { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #ccc; margin-top: 2px; }
+  .lv-req { font-size: 9px; color: #666; margin-top: 2px; }
+  .members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .m-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 16px; }
+  .m-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#7B6BFF,#00C48C); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #fff; flex-shrink: 0; }
+  .m-info { flex: 1; min-width: 0; }
+  .m-name { font-weight: 700; font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-email { font-size: 11px; color: #777; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-wa { font-size: 11px; color: #25D366; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { font-size: 9px; font-weight: 800; letter-spacing: 1px; border: 1px solid; border-radius: 20px; padding: 3px 7px; white-space: nowrap; }
+  .m-meta { display: flex; gap: 12px; font-size: 11px; color: #666; margin-bottom: 12px; flex-wrap: wrap; }
+  .coupon-row { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.3); border-radius: 8px; padding: 7px 10px; margin-bottom: 10px; }
+  .coupon-code { flex: 1; font-size: 11px; color: #7B6BFF; letter-spacing: 1.5px; font-family: monospace; word-break: break-all; }
+  .copy-btn { background: none; border: none; cursor: pointer; font-size: 15px; padding: 0; flex-shrink: 0; }
+  .btn-wa { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: linear-gradient(135deg, #25D366, #128C7E); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; text-decoration: none; transition: opacity .2s; }
+  .btn-wa:hover { opacity: .85; }
+  .updated-at { font-size: 10px; color: #444; margin-top: 8px; text-align: right; }
+  .empty-state { color: #555; text-align: center; padding: 40px; font-size: 14px; line-height: 2; }
+  .form-card { max-width: 500px; margin: 0 auto; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 32px 24px; }
+  .form-title { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+  .form-sub { font-size: 13px; color: #777; margin-bottom: 26px; line-height: 1.65; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 7px; }
+  .field input { width: 100%; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px; outline: none; transition: border .2s; }
+  .field input:focus { border-color: #7B6BFF; }
+  .field input.mono { font-family: monospace; letter-spacing: 1.5px; }
+
+  /* Campo WhatsApp con prefijo */
+  .wa-input-wrap { display: flex; gap: 8px; }
+  .wa-prefix { background: rgba(37,211,102,.12); border: 1px solid rgba(37,211,102,.25); border-radius: 10px; padding: 12px 14px; color: #25D366; font-size: 14px; font-weight: 700; white-space: nowrap; min-width: 56px; text-align: center; }
+  .wa-input-wrap input { flex: 1; }
+
+  .btn-primary { width: 100%; padding: 13px; border-radius: 12px; border: none; background: linear-gradient(135deg,#7B6BFF,#5040D0); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; margin-bottom: 10px; margin-top: 8px; transition: opacity .2s; }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-secondary { width: 100%; padding: 11px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: transparent; color: #888; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .val-result { margin-top: 20px; border: 1px solid; border-radius: 14px; padding: 22px 18px; text-align: center; }
+  .loader { text-align: center; padding: 60px 20px; color: #777; font-size: 15px; }
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div id="toast"></div>
+
+<header>
+  <div class="logo">
+    <span style="font-size:28px">⚡</span>
+    <div>
+      <div class="logo-title">TRAINER NICO</div>
+      <div class="logo-sub" id="connection-status">SISTEMA DE REFERIDOS · CONECTANDO...</div>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-btn" style="font-size:16px" onclick="loadMembers()" title="Actualizar">🔄</button>
+    <button class="nav-btn active" onclick="showView('dashboard')">🏠 Panel</button>
+    <button class="nav-btn" onclick="showView('register')">➕ Nuevo</button>
+    <button class="nav-btn" onclick="showView('validate')">🔍 Validar</button>
+  </nav>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div id="loader" class="loader">⏳ Cargando datos desde Sheets...</div>
+    <div id="dashboard-content" style="display:none">
+      <div class="stats-grid">
+        <div class="stat-card"><div style="font-size:24px">👥</div><div class="stat-val" id="stat-members">0</div><div class="stat-lbl">Miembros</div></div>
+        <div class="stat-card"><div style="font-size:24px">🔗</div><div class="stat-val" id="stat-refs">0</div><div class="stat-lbl">Referidos totales</div></div>
+        <div class="stat-card"><div style="font-size:24px">🏆</div><div class="stat-val" id="stat-top">—</div><div class="stat-lbl">Top referidor</div></div>
+        <div class="stat-card"><div style="font-size:24px">💰</div><div class="stat-val" id="stat-disc">0%</div><div class="stat-lbl">Descuento máximo</div></div>
+      </div>
+      <div class="card">
+        <div class="sec-title">🎯 Niveles de descuento</div>
+        <div class="levels-row">
+          <div class="lv-badge" style="border-color:#CD7F32"><div class="lv-pct" style="color:#CD7F32">10%</div><div class="lv-name">BRONCE</div><div class="lv-req">1 ref.</div></div>
+          <div class="lv-badge" style="border-color:#C0C0C0"><div class="lv-pct" style="color:#C0C0C0">20%</div><div class="lv-name">PLATA</div><div class="lv-req">2 ref.</div></div>
+          <div class="lv-badge" style="border-color:#FFA500"><div class="lv-pct" style="color:#FFA500">30%</div><div class="lv-name">ORO</div><div class="lv-req">3 ref.</div></div>
+          <div class="lv-badge" style="border-color:#B9F2FF"><div class="lv-pct" style="color:#B9F2FF">40%</div><div class="lv-name">DIAMANTE</div><div class="lv-req">4 ref.</div></div>
+          <div class="lv-badge" style="border-color:#FFD700"><div class="lv-pct" style="color:#FFD700">50%</div><div class="lv-name">ÉLITE</div><div class="lv-req">5 ref.</div></div>
+        </div>
+      </div>
+      <div class="sec-title" id="members-title">👤 Miembros registrados</div>
+      <div id="members-grid" class="members-grid"></div>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="view-register" class="view">
+    <div class="form-card">
+      <div class="form-title">➕ Registrar nuevo miembro</div>
+      <div class="form-sub">Completá los datos. Si viene referido, ingresá el cupón de quien lo trajo.</div>
+      <div class="field"><label>Nombre completo *</label><input type="text" id="reg-name" placeholder="Ej: María García"/></div>
+      <div class="field"><label>Email *</label><input type="email" id="reg-email" placeholder="maria@mail.com"/></div>
+      <div class="field">
+        <label>WhatsApp *</label>
+        <div class="wa-input-wrap">
+          <div class="wa-prefix">+54</div>
+          <input type="tel" id="reg-wa" placeholder="11 2345 6789" inputmode="numeric"/>
+        </div>
+      </div>
+      <div class="field"><label>Cupón de referido (opcional)</label><input type="text" id="reg-coupon" class="mono" placeholder="TN-XX-XXXXX-XXXX" oninput="this.value=this.value.toUpperCase()"/></div>
+      <button class="btn-primary" id="reg-btn" onclick="registerMember()">✅ Registrar miembro</button>
+      <button class="btn-secondary" onclick="showView('dashboard')">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- VALIDATE -->
+  <div id="view-validate" class="view">
+    <div class="form-card">
+      <div class="form-title">🔍 Validar cupón</div>
+      <div class="form-sub">Verificá si un cupón es auténtico y enviá el mensaje directo al WhatsApp del cliente.</div>
+      <div class="field"><label>Código de cupón</label><input type="text" id="val-input" class="mono" placeholder="TN-XX-XXXXX-XXXX" oninput="this.value=this.value.toUpperCase(); document.getElementById('val-result').innerHTML=''"/></div>
+      <button class="btn-primary" onclick="validateCoupon()">🔍 Validar cupón</button>
+      <div id="val-result"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxitbNorHNwuMHADaCylFdEoFCJE4OaZUHPnjx400kt9i5zA7EPHE1cWrMYQFxAcjJ0/exec";
+const GYM_NAME = "Trainer Nico";
+const DEFAULT_PREFIX = "+54";
+
+let members = [];
+
+function generateCoupon(name) {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2,6).toUpperCase();
+  const ini = name.split(" ").map(w=>w[0]).join("").toUpperCase().substring(0,3);
+  return `TN-${ini}-${ts}-${rand}`;
+}
+
+function getLevel(refs) {
+  const n = parseInt(refs)||0;
+  if(n>=5) return {pct:50, label:"ÉLITE",    color:"#FFD700", emoji:"👑"};
+  if(n>=4) return {pct:40, label:"DIAMANTE", color:"#B9F2FF", emoji:"💎"};
+  if(n>=3) return {pct:30, label:"ORO",      color:"#FFA500", emoji:"🥇"};
+  if(n>=2) return {pct:20, label:"PLATA",    color:"#C0C0C0", emoji:"🥈"};
+  if(n>=1) return {pct:10, label:"BRONCE",   color:"#CD7F32", emoji:"🥉"};
+  return           {pct:0,  label:"SIN NIVEL",color:"#555",   emoji:"⭐"};
+}
+
+function cleanPhone(raw) {
+  // Quitar todo lo que no sea número
+  return raw.replace(/\D/g, "");
+}
+
+function buildWaUrl(whatsapp, memberIdx) {
+  const m = members[memberIdx];
+  const msg = buildWhatsAppMessage(m);
+  // Si ya tiene prefijo internacional lo usamos, sino +54
+  const phone = whatsapp ? cleanPhone(whatsapp) : "";
+  if(phone) return `https://wa.me/${phone}?text=${msg}`;
+  return `https://wa.me/?text=${msg}`;
+}
+
+function buildWhatsAppMessage(member) {
+  const d = getLevel(member.referidos);
+  const nombre = member.name.split(" ")[0];
+  const refs = parseInt(member.referidos)||0;
+  const nextLevel = refs>=5?5:refs>=4?5:refs>=3?4:refs>=2?3:refs>=1?2:1;
+  const faltan = nextLevel - refs;
+
+  let nivelMsg = d.pct > 0
+    ? `${d.emoji} *Nivel actual: ${d.label}* — tenés un *${d.pct}% de descuento* en tu cuota mensual.`
+    : `⭐ Aún no tenés nivel. ¡Traé tu primer amigo y ganás *10% de descuento*!`;
+
+  let progresoMsg = refs >= 5
+    ? `👑 ¡Estás en el nivel máximo! Disfrutá tu *50% de descuento*.`
+    : `📈 Te ${faltan===1?"falta":"faltan"} *${faltan} referido${faltan===1?"":"s"}* para subir al siguiente nivel.`;
+
+  return encodeURIComponent(
+`¡Hola ${nombre}! 👋 Te escribimos desde *${GYM_NAME}* 💪
+
+${nivelMsg}
+
+🎟️ *Tu cupón personal es:*
+${member.coupon}
+
+Compartilo con tus amigos para que se sumen al gym. Cada vez que alguien se registra con tu cupón, ¡subís de nivel y aumentás tu descuento!
+
+${progresoMsg}
+
+🏅 *Niveles del programa:*
+🥉 1 referido → 10% dto
+🥈 2 referidos → 20% dto
+🥇 3 referidos → 30% dto
+💎 4 referidos → 40% dto
+👑 5 referidos → 50% dto
+
+¡Seguí entrenando y sumando! 🔥
+— Equipo ${GYM_NAME}`);
+}
+
+function waBtn(idx) {
+  return `<button class="btn-wa" onclick="openWhatsApp(${idx})">
+    <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#fff;flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    Enviar cupón por WhatsApp
+  </button>`;
+}
+
+function openWhatsApp(idx) {
+  const m = members[idx];
+  const url = buildWaUrl(m.whatsapp, idx);
+  window.open(url, "_blank");
+}
+
+function showToast(msg, type="ok") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = type==="ok" ? "#00C48C" : "#FF4D4D";
+  t.style.display = "block";
+  setTimeout(()=>{ t.style.display="none"; }, 3500);
+}
+
+function showView(name) {
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.querySelectorAll(".nav-btn:not(:first-child)").forEach(b=>b.classList.remove("active"));
+  document.getElementById("view-"+name).classList.add("active");
+  const btns = document.querySelectorAll(".nav-btn:not(:first-child)");
+  ({dashboard:0,register:1,validate:2})[name] !== undefined && btns[({dashboard:0,register:1,validate:2})[name]].classList.add("active");
+  if(name==="validate") document.getElementById("val-result").innerHTML="";
+}
+
+function avatarLetters(name) {
+  return (name||"?").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+}
+
+function renderMembers() {
+  const grid = document.getElementById("members-grid");
+  const totalRef = members.reduce((a,m)=>a+(parseInt(m.referidos)||0),0);
+  const topRef = [...members].sort((a,b)=>(parseInt(b.referidos)||0)-(parseInt(a.referidos)||0))[0];
+  const maxDisc = members.length ? getLevel(Math.max(...members.map(m=>parseInt(m.referidos)||0))).pct : 0;
+  document.getElementById("stat-members").textContent = members.length;
+  document.getElementById("stat-refs").textContent = totalRef;
+  document.getElementById("stat-top").textContent = topRef ? topRef.name.split(" ")[0] : "—";
+  document.getElementById("stat-disc").textContent = maxDisc+"%";
+  document.getElementById("members-title").textContent = `👤 Miembros registrados (${members.length})`;
+
+  if(!members.length) {
+    grid.innerHTML = `<div class="empty-state">Aún no hay miembros registrados.<br/>¡Registrá el primero!</div>`;
+    return;
+  }
+
+  grid.innerHTML = members.map((m,i) => {
+    const d = getLevel(m.referidos);
+    return `
+    <div class="m-card">
+      <div class="m-top">
+        <div class="avatar">${avatarLetters(m.name)}</div>
+        <div class="m-info">
+          <div class="m-name">${m.name||""}</div>
+          <div class="m-email">${m.email||""}</div>
+          ${m.whatsapp ? `<div class="m-wa">📱 ${m.whatsapp}</div>` : ""}
+        </div>
+        <div class="badge" style="color:${d.color};border-color:${d.color}">${d.emoji} ${d.label}</div>
+      </div>
+      <div class="m-meta">
+        <span>🔗 ${m.referidos||0} referido${(m.referidos||0)!==1?"s":""}</span>
+        <span>💸 ${d.pct}% descuento</span>
+        <span>📅 ${m.joined||""}</span>
+      </div>
+      <div class="coupon-row">
+        <code class="coupon-code">${m.coupon||""}</code>
+        <button class="copy-btn" onclick="copyCoupon('${m.coupon}',this)">📋</button>
+      </div>
+      ${waBtn(i)}
+      ${m.ultimaActualizacion ? `<div class="updated-at">Actualizado: ${m.ultimaActualizacion}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function copyCoupon(code, btn) {
+  navigator.clipboard.writeText(code).catch(()=>{});
+  btn.textContent = "✅";
+  setTimeout(()=>{ btn.textContent="📋"; }, 1500);
+}
+
+async function loadMembers() {
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("loader").textContent = "⏳ Cargando datos desde Sheets...";
+  document.getElementById("dashboard-content").style.display = "none";
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + "?action=getAll&t=" + Date.now());
+    const data = await res.json();
+    if(data.ok) {
+      members = data.members || [];
+      document.getElementById("connection-status").textContent = "SISTEMA DE REFERIDOS · CONECTADO A SHEETS ✅";
+      renderMembers();
+      document.getElementById("loader").style.display = "none";
+      document.getElementById("dashboard-content").style.display = "block";
+    } else throw new Error(data.error);
+  } catch(e) {
+    document.getElementById("loader").textContent = "⚠️ Error al cargar. Tocá 🔄 para reintentar.";
+    document.getElementById("connection-status").textContent = "SISTEMA DE REFERIDOS · ERROR DE CONEXIÓN";
+  }
+}
+
+async function registerMember() {
+  const name = document.getElementById("reg-name").value.trim();
+  const email = document.getElementById("reg-email").value.trim();
+  const waRaw = document.getElementById("reg-wa").value.trim();
+  const couponUsed = document.getElementById("reg-coupon").value.trim();
+  if(!name || !email) { showToast("Completá nombre y email","err"); return; }
+  if(!waRaw) { showToast("Ingresá el número de WhatsApp","err"); return; }
+
+  // Armar número completo: +54 + número limpio
+  const waFull = DEFAULT_PREFIX + cleanPhone(waRaw);
+
+  const btn = document.getElementById("reg-btn");
+  btn.disabled = true; btn.textContent = "⏳ Guardando en Sheets...";
+  try {
+    const payload = { action:"register", id:Date.now(), name, email, whatsapp:waFull, coupon:generateCoupon(name), joined:new Date().toISOString().split("T")[0], couponUsed:couponUsed||null };
+    const res = await fetch(APPS_SCRIPT_URL, { method:"POST", body:JSON.stringify(payload) });
+    const data = await res.json();
+    if(data.ok) {
+      showToast(`✅ ${name.split(" ")[0]} registrado!`);
+      document.getElementById("reg-name").value="";
+      document.getElementById("reg-email").value="";
+      document.getElementById("reg-wa").value="";
+      document.getElementById("reg-coupon").value="";
+      showView("dashboard");
+      await loadMembers();
+    } else { showToast(data.error||"Error al registrar","err"); }
+  } catch(e) { showToast("Error de conexión con Sheets","err"); }
+  btn.disabled=false; btn.textContent="✅ Registrar miembro";
+}
+
+async function validateCoupon() {
+  const code = document.getElementById("val-input").value.trim();
+  if(!code) return;
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=validate&coupon=${encodeURIComponent(code)}&t=${Date.now()}`);
+    const data = await res.json();
+    const box = document.getElementById("val-result");
+    if(data.ok && data.valid) {
+      const m = data.member;
+      const d = getLevel(m.referidos);
+      const tempIdx = members.findIndex(x=>x.coupon===m.coupon);
+      const idx = tempIdx>=0 ? tempIdx : (members.push(m), members.length-1);
+      box.innerHTML = `
+        <div class="val-result" style="border-color:#00C48C;background:rgba(0,196,140,.07)">
+          <div style="font-size:34px;margin-bottom:10px">✅</div>
+          <div style="font-size:19px;font-weight:900;color:#fff;margin-bottom:4px">${m.name}</div>
+          <div style="font-size:12px;color:#888;margin-bottom:4px">${m.email}</div>
+          ${m.whatsapp ? `<div style="font-size:12px;color:#25D366;margin-bottom:14px">📱 ${m.whatsapp}</div>` : `<div style="margin-bottom:14px"></div>`}
+          <div class="badge" style="color:${d.color};border-color:${d.color};display:inline-block;font-size:12px;padding:6px 16px;margin-bottom:12px">${d.emoji} ${d.label} · ${d.pct}% DESCUENTO</div>
+          <div style="font-size:12px;color:#777;margin-bottom:14px">🔗 ${m.referidos||0} referido${(m.referidos||0)!==1?"s":""} confirmados</div>
+          <div class="coupon-row" style="margin-bottom:12px"><code class="coupon-code">${m.coupon}</code></div>
+          ${waBtn(idx)}
+          ${m.ultimaActualizacion ? `<div class="updated-at" style="margin-top:10px">Última actualización: ${m.ultimaActualizacion}</div>` : ""}
+        </div>`;
+    } else {
+      box.innerHTML = `
+        <div class="val-result" style="border-color:#FF4D4D;background:rgba(255,77,77,.07)">
+          <div style="font-size:34px;margin-bottom:10px">❌</div>
+          <div style="font-size:17px;font-weight:700;color:#FF4D4D;margin-bottom:8px">Cupón no válido</div>
+          <div style="font-size:13px;color:#888">Este código no existe o fue ingresado incorrectamente.</div>
+        </div>`;
+    }
+  } catch(e) { showToast("Error de conexión","err"); }
+}
+
+loadMembers();
+</script>
+</body>
+</html>
